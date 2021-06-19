@@ -14,6 +14,7 @@ class GroupModelTest(TestCase):
         )
 
     def test_title(self):
+        """Вывод __str__ метода модели Group."""
         group = GroupModelTest.group
         title = group.title
         self.assertEqual(title, str(group), 'Ошибка в "test_title"')
@@ -31,6 +32,7 @@ class PostModelTest(TestCase):
         )
 
     def test_text(self):
+        """Вывод __str__ метода модели Post."""
         post = PostModelTest.post
         text = post.text[:15]
         self.assertEqual(text, str(post), 'Ошиибка в "test_text"')

@@ -20,6 +20,7 @@ class CreateFormTest(TestCase):
         self.auth_client.force_login(self.user)
 
     def test_create_post(self):
+        """Запись новых постов в базу данных."""
         post_count = Post.objects.count()
         form_data = {
             'text': 'Новый пост'

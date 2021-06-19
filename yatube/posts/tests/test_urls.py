@@ -26,6 +26,7 @@ class StaticURLTests(TestCase):
         self.auth_client.force_login(self.user)
 
     def test_templates_urls(self):
+        """Вывод верных шаблонов по заданному адресу."""
         templates_url_names = {
             'index.html': '/',
             'group.html': '/group/slug/',
@@ -41,6 +42,7 @@ class StaticURLTests(TestCase):
                     'Ошибка в test_templates_urls')
 
     def test_code_urls(self):
+        """Ответ сервера на запрос клиента."""
         url_code = {
             '/': 200,
             '/group/slug/': 200

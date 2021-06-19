@@ -26,6 +26,7 @@ class ViewsTests(TestCase):
         self.auth_client.force_login(self.user)
 
     def test_page_use_correct_templates(self):
+        """Соответствие шаблонов к url через вызов view."""
         templates_pages = {
             'index.html': reverse('posts:index'),
             'group.html': reverse(
@@ -44,6 +45,7 @@ class ViewsTests(TestCase):
                     'Ошибка в test_page_use_correct_templates')
 
     def test_index_correct_context(self):
+        """Проверка context главной страницы."""
         response = self.auth_client.get(reverse('posts:index'))
         first_object = response.context['page'][0]
 
@@ -52,6 +54,7 @@ class ViewsTests(TestCase):
         self.assertEqual(post_text_0, 'текст')
 
     def test_new_correct_context(self):
+        """Проверка context страницы создания поста."""
         response = self.auth_client.get(reverse('posts:new_post'))
         form_fields = {
             'text': forms.fields.CharField,
@@ -63,6 +66,7 @@ class ViewsTests(TestCase):
                 self.assertIsInstance(form_field, expected)
 
     def test_group_pages_context(self):
+        """Проверка context страницы группы."""
         response = self.auth_client.get(
             reverse('group', kwargs={'slug': 'slug'}))
         self.assertEqual(response.context['group'].title, 'текст'),
@@ -71,14 +75,43 @@ class ViewsTests(TestCase):
             response.context['group'].description,
             'Это просто очередной тест')
 
-    def test_paginator_first(self):
-        response = self.auth_client.get(reverse('posts:index'))
-        print(response.context.get('page').__dict__)
-        self.assertEqual(response.context.get('page').object_list.count(), 10)
+    def test_paginator(self):
+        """Проверка корректной работы пажинатора."""
+        posts_in_page = {
+            reverse('posts:index'): 10,
+            reverse('posts:index') + '?page=2': 5
+        }
+        for url, posts in posts_in_page.items():
+            with self.subTest(url=url):
+                resp = self.auth_client.get(url)
+                self.assertEqual(
+                    len(resp.context['page']),
+                    posts,
+                    'Ошибка в тесте test_paginator')
 
-    def test_paginator_second(self):
-        response = self.auth_client.get(reverse('posts:index'))
-        self.assertEqual(response.context.get('page').objects.count(), 5)
+    def test_post_with_group(self):
+        """Проверка создания нового поста с указанием группы."""
+        form_data = {
+            'text': 'New post',
+            'group': 1
+        }
+        for i in range(2):
+            self.auth_client.post(
+                reverse('posts:new_post'),
+                data=form_data,
+                follow=True
+            )
 
+        posts_in_page = {
+            reverse('posts:index') + '?page=2': 7,
+            reverse('group', kwargs={'slug': 'slug'}): 2
+        }
 
-# *************************************************************************************************
+        for url, posts in posts_in_page.items():
+            with self.subTest(url=url):
+                resp = self.auth_client.get(url)
+                posts_count = len(resp.context['page'])
+                self.assertEqual(
+                    posts_count,
+                    posts,
+                    'Ошибка в тесте test_post_with_group')
