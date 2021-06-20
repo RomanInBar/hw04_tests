@@ -90,7 +90,7 @@ class ViewsTests(TestCase):
                     'Ошибка в тесте test_paginator')
 
     def test_post_with_group(self):
-        """Проверка создания нового поста с указанием группы."""
+        """Проверка на запись нового поста с указанием группы."""
         form_data = {
             'text': 'New post',
             'group': 1
