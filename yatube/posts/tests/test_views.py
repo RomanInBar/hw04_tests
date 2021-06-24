@@ -14,15 +14,22 @@ class ViewsTests(TestCase):
             title='текст',
             slug='slug',
             description='Это просто очередной тест')
+        cls.group_2 = Group.objects.create(
+            title='какой-то текст',
+            slug='slug_2',
+            description='Ёще одна группа'
+        )
         for object in range(15):
             cls.post = Post.objects.create(
                 text='текст',
                 pub_date='20.20.2020',
-                author_id=1)
+                author_id=1,
+                group_id=1)
 
     def setUp(self):
         self.user = ViewsTests.user
         self.auth_client = Client()
+        self.quest_client = Client()
         self.auth_client.force_login(self.user)
 
     def test_page_use_correct_templates(self):
@@ -44,25 +51,43 @@ class ViewsTests(TestCase):
                     template,
                     'Ошибка в test_page_use_correct_templates')
 
-    def test_index_correct_context(self):
-        """Проверка context главной страницы."""
-        response = self.auth_client.get(reverse('posts:index'))
-        first_object = response.context['page'][0]
+    def test_index_profile_post_correct_context(self):
+        """Проверка context главной страницы и страницы профиля."""
+        response = {
+            'response_index': self.auth_client.get(reverse('posts:index')),
+            'response_profile': self.auth_client.get(
+                reverse('posts:profile', kwargs={'username': 'user'}))}
 
-        post_text_0 = first_object.text
+        for page, resp in response.items():
+            with self.subTest(resp=resp):
+                first_object = resp.context['page'][0]
+                post_text_0 = first_object.text
+                self.assertEqual(post_text_0, 'текст')
 
-        self.assertEqual(post_text_0, 'текст')
+    def test_post_correct_context(self):
+        """Проверка context страницы поста."""
+        response = self.auth_client.get(reverse(
+            'posts:post',
+            kwargs={'username': 'user', 'post_id': '1'}))
+        text = response.context['post'].text
+        self.assertEqual(text, 'текст')
 
-    def test_new_correct_context(self):
-        """Проверка context страницы создания поста."""
-        response = self.auth_client.get(reverse('posts:new_post'))
+    def test_new_edit_correct_context(self):
+        """Проверка context страницы создания и редактирования поста."""
+        response_1 = self.auth_client.get(reverse('posts:new_post'))
+        response_2 = self.auth_client.get(
+            reverse(
+                'posts:post_edit',
+                kwargs={'username': 'user', 'post_id': '1'}))
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField
         }
         for value, expected in form_fields.items():
             with self.subTest(value=value):
-                form_field = response.context['form'].fields[value]
+                form_field = response_1.context['form'].fields[value]
+                self.assertIsInstance(form_field, expected)
+                form_field = response_2.context['form'].fields[value]
                 self.assertIsInstance(form_field, expected)
 
     def test_group_pages_context(self):
@@ -79,7 +104,9 @@ class ViewsTests(TestCase):
         """Проверка корректной работы пажинатора."""
         posts_in_page = {
             reverse('posts:index'): 10,
-            reverse('posts:index') + '?page=2': 5
+            reverse('posts:index') + '?page=2': 5,
+            reverse('group', kwargs={'slug': 'slug'}): 10,
+            reverse('posts:profile', kwargs={'username': 'user'}): 10
         }
         for url, posts in posts_in_page.items():
             with self.subTest(url=url):
@@ -93,7 +120,7 @@ class ViewsTests(TestCase):
         """Проверка на запись нового поста с указанием группы."""
         form_data = {
             'text': 'New post',
-            'group': 1
+            'group': 2
         }
         for i in range(2):
             self.auth_client.post(
@@ -104,7 +131,8 @@ class ViewsTests(TestCase):
 
         posts_in_page = {
             reverse('posts:index') + '?page=2': 7,
-            reverse('group', kwargs={'slug': 'slug'}): 2
+            reverse('group', kwargs={'slug': 'slug'}): 10,
+            reverse('group', kwargs={'slug': 'slug_2'}): 2
         }
 
         for url, posts in posts_in_page.items():
@@ -115,3 +143,20 @@ class ViewsTests(TestCase):
                     posts_count,
                     posts,
                     'Ошибка в тесте test_post_with_group')
+
+    def test_about_app(self):
+        """
+        Тестирование приложения about,
+        проверка доступа неавторизованному пользователю и отображения страниц.
+        """
+        request_urls = {
+            '/about/author/': (200, 'about/author.html'),
+            '/about/tech/': (200, 'about/tech.html')
+        }
+
+        for url, value in request_urls.items():
+            status, template = value
+            with self.subTest(url=url):
+                resp = self.quest_client.get(url)
+                self.assertEqual(resp.status_code, status)
+                self.assertTemplateUsed(resp, template)
