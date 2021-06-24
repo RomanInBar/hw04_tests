@@ -33,3 +33,19 @@ class CreateFormTest(TestCase):
 
         self.assertNotEqual(Post.objects.count(), post_count)
         self.assertEqual(response.status_code, 200)
+
+    def test_edit_post(self):
+        """Редактирование поста."""
+        text = Post.objects.get(id=1)
+        resp = self.auth_client.post(
+            reverse(
+                'posts:post_edit',
+                kwargs={'username': 'user', 'post_id': '1'}),
+            data={
+                'text': 'Редачим пост'
+            },
+            follow=True
+        )
+        new_text = Post.objects.get(id=1)
+        self.assertNotEqual(text.text, new_text.text)
+        self.assertEqual(resp.status_code, 200)
