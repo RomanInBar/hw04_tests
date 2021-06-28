@@ -27,7 +27,6 @@ class PostModelTest(TestCase):
         cls.user = User.objects.create_user(username='user')
         cls.post = Post.objects.create(
             text='Тестовый текст',
-            pub_date='20.20.2020',
             author_id=1
         )
 

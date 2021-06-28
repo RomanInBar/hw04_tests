@@ -1,7 +1,9 @@
+from http import HTTPStatus
+
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from posts.models import Post, User
+from posts.models import Group, Post, User
 
 
 class CreateFormTest(TestCase):
@@ -9,10 +11,18 @@ class CreateFormTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='user')
+        cls.group = Group.objects.create(
+            title='группа-1',
+            slug='slug',
+            description='первая группа')
+        cls.group_2 = Group.objects.create(
+            title='группа-2',
+            slug='slug_2',
+            description='вторая группа')
         cls.post = Post.objects.create(
             text='текст',
-            pub_date='20.20.2020',
-            author_id=1)
+            author_id=1,
+            group_id=1)
 
     def setUp(self):
         self.user = CreateFormTest.user
@@ -22,30 +32,51 @@ class CreateFormTest(TestCase):
     def test_create_post(self):
         """Запись новых постов в базу данных."""
         post_count = Post.objects.count()
-        form_data = {
-            'text': 'Новый пост'
+        form_fields = {
+            'text': 'Новый пост',
+            'group': self.group.id
         }
         response = self.auth_client.post(
             reverse('posts:new_post'),
-            data=form_data,
+            data=form_fields,
             follow=True
         )
+        post = Post.objects.filter(text=form_fields['text']).get()
 
-        self.assertNotEqual(Post.objects.count(), post_count)
-        self.assertEqual(response.status_code, 200)
+        var_tests = {
+            Post.objects.count(): post_count + 1,
+            response.status_code: HTTPStatus.OK,
+            form_fields['group']: post.group.id,
+            form_fields['text']: post.text
+        }
+
+        for var_one, var_two in var_tests.items():
+            with self.subTest(var_one=var_one):
+                self.assertEqual(var_one, var_two)
 
     def test_edit_post(self):
         """Редактирование поста."""
-        text = Post.objects.get(id=1)
+        post_count = Post.objects.count()
+        form_fields = {
+            'text': 'Редачим пост',
+            'group': self.group_2.id
+        }
         resp = self.auth_client.post(
             reverse(
                 'posts:post_edit',
                 kwargs={'username': 'user', 'post_id': '1'}),
-            data={
-                'text': 'Редачим пост'
-            },
+            data=form_fields,
             follow=True
         )
-        new_text = Post.objects.get(id=1)
-        self.assertNotEqual(text.text, new_text.text)
-        self.assertEqual(resp.status_code, 200)
+        edit_post = Post.objects.filter(text=form_fields['text']).get()
+
+        var_tests = {
+            form_fields['text']: edit_post.text,
+            form_fields['group']: edit_post.group.id,
+            Post.objects.count(): post_count,
+            resp.status_code: HTTPStatus.OK
+        }
+
+        for var_one, var_two in var_tests.items():
+            with self.subTest(var_one=var_one):
+                self.assertEqual(var_one, var_two)

@@ -10,19 +10,18 @@ class StaticURLTests(TestCase):
         super().setUpClass()
         cls.user = User.objects.create_user(username='user')
         cls.Bob = User.objects.create_user(username='Bob')
-        Group.objects.create(
+        cls.group = Group.objects.create(
             title='Тестовый тест титла',
             slug='slug',
             description='Это просто очередной тест'
         )
-        Post.objects.create(
+        cls.post = Post.objects.create(
             text='Тестовый текст для теста',
-            pub_date='20.20.2020',
             author_id=1
         )
 
     def setUp(self):
-        self.quest_client = Client()
+        self.quest = Client()
         self.auth_client = Client()
         self.Bob = Client()
         self.auth_client.force_login(StaticURLTests.user)
@@ -31,15 +30,18 @@ class StaticURLTests(TestCase):
     def test_templates_urls(self):
         """Вывод верных шаблонов по заданному адресу."""
         templates_url_names = {
-            '/': 'index.html',
-            '/group/slug/': 'group.html',
-            '/new/': 'posts/new_edit_post.html',
-            '/user/1/edit/': 'posts/new_edit_post.html'
+            '/': ('index.html', self.quest),
+            f'/group/{self.group.slug}/': ('group.html', self.quest),
+            '/new/': ('posts/new_edit_post.html', self.auth_client),
+            f'/{self.user.username}/{self.post.id}/edit/': (
+                'posts/new_edit_post.html',
+                self.auth_client)
         }
 
-        for adress, template in templates_url_names.items():
+        for adress, values in templates_url_names.items():
+            template, client = values
             with self.subTest(adress=adress):
-                response = self.auth_client.get(adress)
+                response = client.get(adress)
                 self.assertTemplateUsed(
                     response,
                     template,
@@ -48,16 +50,17 @@ class StaticURLTests(TestCase):
     def test_code_urls(self):
         """Ответ сервера на запрос клиента."""
         url_code = {
-            '/': 200,
-            '/group/slug/': 200,
-            '/user/1/': 200,
-            '/user/': 200,
-            '/new': 301,
+            '/': (200, self.quest),
+            f'/group/{self.group.slug}/': (200, self.quest),
+            f'/{self.user.username}/{self.post.id}/': (200, self.quest),
+            f'/{self.user.username}/': (200, self.quest),
+            '/new/': (200, self.auth_client)
         }
 
-        for url, code in url_code.items():
+        for url, values in url_code.items():
+            code, client = values
             with self.subTest(url=url):
-                response = self.quest_client.get(url)
+                response = client.get(url)
                 self.assertEqual(
                     response.status_code,
                     code,
@@ -65,15 +68,22 @@ class StaticURLTests(TestCase):
 
     def test_url_redirect(self):
         """Проверка переадресации незарегистрированных пользователей."""
-        resp = self.quest_client.get('/user/1/edit/', follow=True)
-        self.assertRedirects(resp, reverse('login') + '?next=/user/1/edit/')
+        resp = self.quest.get(
+            f'/{self.user.username}/{self.post.id}/edit/',
+            follow=True)
+        self.assertRedirects(
+            resp,
+            reverse('login') + f'?next=/{self.user.username}'
+            f'/{self.post.id}/edit/')
+        self.assertEqual(resp.status_code, 200)
 
     def test_post_edit(self):
         """Проверка возможности редактирования поста разными пользователями."""
-        anonym = self.quest_client.get('/user/1/edit/')
+        anonym = self.quest.get(f'/{self.user.username}/{self.post.id}/edit/')
         self.assertEqual(anonym.status_code, 302)
 
-        auth_autor = self.auth_client.get('/user/1/edit/')
+        auth_autor = self.auth_client.get(
+            f'/{self.user.username}/{self.post.id}/edit/')
         self.assertEqual(auth_autor.status_code, 200)
 
         auth_no_author = self.Bob.post(

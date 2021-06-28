@@ -22,7 +22,6 @@ class ViewsTests(TestCase):
         for object in range(15):
             cls.post = Post.objects.create(
                 text='текст',
-                pub_date='20.20.2020',
                 author_id=1,
                 group_id=1)
 
@@ -143,20 +142,3 @@ class ViewsTests(TestCase):
                     posts_count,
                     posts,
                     'Ошибка в тесте test_post_with_group')
-
-    def test_about_app(self):
-        """
-        Тестирование приложения about,
-        проверка доступа неавторизованному пользователю и отображения страниц.
-        """
-        request_urls = {
-            '/about/author/': (200, 'about/author.html'),
-            '/about/tech/': (200, 'about/tech.html')
-        }
-
-        for url, value in request_urls.items():
-            status, template = value
-            with self.subTest(url=url):
-                resp = self.quest_client.get(url)
-                self.assertEqual(resp.status_code, status)
-                self.assertTemplateUsed(resp, template)
