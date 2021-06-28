@@ -103,10 +103,12 @@ class ViewsTests(TestCase):
     def test_group_pages_context(self):
         """Проверка context страницы группы."""
         response = self.auth_client.get(f'/group/{self.group.slug}/')
-        resp_group = response.context['group']
-        self.assertEqual(resp_group.title, self.post.text),
-        self.assertEqual(resp_group.slug, self.group.slug)
-        self.assertEqual(resp_group.description, self.group.description)
+        post_group = response.context['group']
+        post_author = response.context['page'][0]
+        self.assertEqual(post_group.title, self.post.text),
+        self.assertEqual(post_group.slug, self.group.slug)
+        self.assertEqual(post_group.description, self.group.description)
+        self.assertEqual(post_author.author, self.post.author)
 
     def test_paginator(self):
         """Проверка корректной работы пажинатора."""
