@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from django.test import Client, TestCase
 from django.urls.base import reverse
 
@@ -50,11 +52,12 @@ class StaticURLTests(TestCase):
     def test_code_urls(self):
         """Ответ сервера на запрос клиента."""
         url_code = {
-            '/': (200, self.quest),
-            f'/group/{self.group.slug}/': (200, self.quest),
-            f'/{self.user.username}/{self.post.id}/': (200, self.quest),
-            f'/{self.user.username}/': (200, self.quest),
-            '/new/': (200, self.auth_client)
+            '/': (HTTPStatus.OK, self.quest),
+            f'/group/{self.group.slug}/': (HTTPStatus.OK, self.quest),
+            f'/{self.user.username}/{self.post.id}/': (
+                HTTPStatus.OK, self.quest),
+            f'/{self.user.username}/': (HTTPStatus.OK, self.quest),
+            '/new/': (HTTPStatus.OK, self.auth_client)
         }
 
         for url, values in url_code.items():
@@ -75,25 +78,31 @@ class StaticURLTests(TestCase):
             resp,
             reverse('login') + f'?next=/{self.user.username}'
             f'/{self.post.id}/edit/')
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, HTTPStatus.OK)
 
     def test_post_edit(self):
         """Проверка возможности редактирования поста разными пользователями."""
         anonym = self.quest.get(f'/{self.user.username}/{self.post.id}/edit/')
-        self.assertEqual(anonym.status_code, 302)
+        self.assertRedirects(
+            anonym,
+            reverse('login') + f'?next=/{self.user.username}'
+            f'/{self.post.id}/edit/')
 
         auth_autor = self.auth_client.get(
             f'/{self.user.username}/{self.post.id}/edit/')
-        self.assertEqual(auth_autor.status_code, 200)
+        self.assertEqual(auth_autor.status_code, HTTPStatus.OK)
 
         auth_no_author = self.Bob.post(
-            reverse(
-                'posts:post_edit',
-                kwargs={'username': 'user', 'post_id': '1'}),
+            f'/{self.user.username}/{self.post.id}/edit/',
             data={
                 'text': 'I am not author. Ha-ha!'
             },
             follow=True)
+
         self.assertRedirects(
             auth_no_author,
-            reverse('posts:post', kwargs={'username': 'user', 'post_id': '1'}))
+            reverse(
+                'posts:post',
+                kwargs={
+                    'username': self.user.username,
+                    'post_id': self.post.id}))
