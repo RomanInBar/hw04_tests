@@ -37,7 +37,7 @@ class ViewsTests(TestCase):
             'index.html': reverse('posts:index'),
             'group.html': reverse(
                 'group',
-                kwargs={'slug': 'slug'}),
+                kwargs={'slug': self.group.slug}),
             'posts/new_edit_post.html': reverse(
                 'posts:new_post')
         }
@@ -55,21 +55,30 @@ class ViewsTests(TestCase):
         response = {
             'response_index': self.auth_client.get(reverse('posts:index')),
             'response_profile': self.auth_client.get(
-                reverse('posts:profile', kwargs={'username': 'user'}))}
+                reverse(
+                    'posts:profile',
+                    kwargs={'username': self.user.username}))}
 
         for page, resp in response.items():
             with self.subTest(resp=resp):
                 first_object = resp.context['page'][0]
                 post_text_0 = first_object.text
-                self.assertEqual(post_text_0, 'текст')
+                post_author_0 = first_object.author
+                post_group_0 = first_object.group
+                post_date_0 = first_object.pub_date
+                self.assertEqual(post_text_0, self.post.text)
+                self.assertEqual(post_author_0, self.post.author)
+                self.assertEqual(post_group_0, self.post.group)
+                self.assertEqual(post_date_0, self.post.pub_date)
 
     def test_post_correct_context(self):
         """Проверка context страницы поста."""
         response = self.auth_client.get(reverse(
             'posts:post',
-            kwargs={'username': 'user', 'post_id': '1'}))
-        text = response.context['post'].text
-        self.assertEqual(text, 'текст')
+            kwargs={'username': self.user.username, 'post_id': self.post.id}))
+        resp = response.context['post']
+        self.assertEqual(resp.text, self.post.text)
+        self.assertEqual(resp.author, self.post.author)
 
     def test_new_edit_correct_context(self):
         """Проверка context страницы создания и редактирования поста."""
@@ -77,7 +86,9 @@ class ViewsTests(TestCase):
         response_2 = self.auth_client.get(
             reverse(
                 'posts:post_edit',
-                kwargs={'username': 'user', 'post_id': '1'}))
+                kwargs={
+                    'username': self.user.username,
+                    'post_id': self.post.id}))
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField
@@ -91,35 +102,40 @@ class ViewsTests(TestCase):
 
     def test_group_pages_context(self):
         """Проверка context страницы группы."""
-        response = self.auth_client.get(
-            reverse('group', kwargs={'slug': 'slug'}))
-        self.assertEqual(response.context['group'].title, 'текст'),
-        self.assertEqual(response.context['group'].slug, 'slug')
-        self.assertEqual(
-            response.context['group'].description,
-            'Это просто очередной тест')
+        response = self.auth_client.get(f'/group/{self.group.slug}/')
+        resp_group = response.context['group']
+        self.assertEqual(resp_group.title, self.post.text),
+        self.assertEqual(resp_group.slug, self.group.slug)
+        self.assertEqual(resp_group.description, self.group.description)
 
     def test_paginator(self):
         """Проверка корректной работы пажинатора."""
-        posts_in_page = {
-            reverse('posts:index'): 10,
-            reverse('posts:index') + '?page=2': 5,
-            reverse('group', kwargs={'slug': 'slug'}): 10,
-            reverse('posts:profile', kwargs={'username': 'user'}): 10
-        }
-        for url, posts in posts_in_page.items():
+        posts_on_page = {
+            reverse('posts:index'): (10, 5),
+            reverse('group', kwargs={'slug': self.group.slug}): (10, 5),
+            reverse(
+                'posts:profile',
+                kwargs={'username': self.user.username}): (10, 5)}
+
+        for url, posts in posts_on_page.items():
+            first_page, second_page = posts
             with self.subTest(url=url):
-                resp = self.auth_client.get(url)
+                first = self.auth_client.get(url)
+                second = self.auth_client.get((url) + '?page=2')
                 self.assertEqual(
-                    len(resp.context['page']),
-                    posts,
-                    'Ошибка в тесте test_paginator')
+                    len(first.context.get('page').object_list),
+                    first_page,
+                    'Ошибка в тесте test_paginator, первая страница')
+                self.assertEqual(
+                    len(second.context.get('page').object_list),
+                    second_page,
+                    'Ошибка в тесте test_paginator, вторая страница')
 
     def test_post_with_group(self):
         """Проверка на запись нового поста с указанием группы."""
         form_data = {
             'text': 'New post',
-            'group': 2
+            'group': self.group_2.id
         }
         for i in range(2):
             self.auth_client.post(
@@ -128,17 +144,18 @@ class ViewsTests(TestCase):
                 follow=True
             )
 
-        posts_in_page = {
-            reverse('posts:index') + '?page=2': 7,
-            reverse('group', kwargs={'slug': 'slug'}): 10,
-            reverse('group', kwargs={'slug': 'slug_2'}): 2
+        posts_on_page = {
+            reverse('group', kwargs={'slug': self.group.slug}): 10,
+            reverse('group', kwargs={'slug': self.group_2.slug}): 2
         }
 
-        for url, posts in posts_in_page.items():
+        for url, posts in posts_on_page.items():
             with self.subTest(url=url):
                 resp = self.auth_client.get(url)
-                posts_count = len(resp.context['page'])
+                posts_count = len(resp.context.get('page').object_list)
                 self.assertEqual(
                     posts_count,
                     posts,
                     'Ошибка в тесте test_post_with_group')
+        resp = self.auth_client.get(reverse('posts:index') + '?page=2')
+        self.assertEqual(len(resp.context.get('page').object_list), 7)
