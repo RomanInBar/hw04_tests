@@ -106,3 +106,7 @@ class StaticURLTests(TestCase):
                 kwargs={
                     'username': self.user.username,
                     'post_id': self.post.id}))
+
+    def test_error_404(self):
+        response = self.auth_client.get(f'/{self.user.username}/100/')
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)

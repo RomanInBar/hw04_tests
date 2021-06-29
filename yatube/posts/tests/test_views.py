@@ -23,7 +23,8 @@ class ViewsTests(TestCase):
             cls.post = Post.objects.create(
                 text='текст',
                 author_id=1,
-                group_id=1)
+                group_id=1,
+                image='posts/p1.jpg')
 
     def setUp(self):
         self.user = ViewsTests.user
@@ -66,10 +67,12 @@ class ViewsTests(TestCase):
                 post_author_0 = first_object.author
                 post_group_0 = first_object.group
                 post_date_0 = first_object.pub_date
+                post_image_0 = first_object.image
                 self.assertEqual(post_text_0, self.post.text)
                 self.assertEqual(post_author_0, self.post.author)
                 self.assertEqual(post_group_0, self.post.group)
                 self.assertEqual(post_date_0, self.post.pub_date)
+                self.assertEqual(post_image_0, self.post.image)
 
     def test_post_correct_context(self):
         """Проверка context страницы поста."""
@@ -79,6 +82,7 @@ class ViewsTests(TestCase):
         resp = response.context['post']
         self.assertEqual(resp.text, self.post.text)
         self.assertEqual(resp.author, self.post.author)
+        self.assertEqual(resp.image, self.post.image)
 
     def test_new_edit_correct_context(self):
         """Проверка context страницы создания и редактирования поста."""
@@ -109,6 +113,7 @@ class ViewsTests(TestCase):
         self.assertEqual(post_group.slug, self.group.slug)
         self.assertEqual(post_group.description, self.group.description)
         self.assertEqual(post_author.author, self.post.author)
+        self.assertEqual(post_author.image, self.post.image)
 
     def test_paginator(self):
         """Проверка корректной работы пажинатора."""

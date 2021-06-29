@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import PostForm
+from .forms import CommentsForm, PostForm
 from .models import Group, Post, User
 
 
@@ -36,13 +36,18 @@ def profile(request, username):
 
 def post_view(request, username, post_id):
     post = get_object_or_404(Post, id=post_id, author__username=username)
+    comments = post.comments.all()
+    context = {
+        'post': post,
+        'comments': comments
+    }
 
-    return render(request, 'posts/post.html', {'post': post})
+    return render(request, 'posts/post.html', context)
 
 
 @login_required
 def new_post(request):
-    form = PostForm(request.POST or None)
+    form = PostForm(request.POST or None, request.FILES or None)
     if form.is_valid():
         post = form.save(commit=False)
         post.author = request.user
@@ -56,8 +61,28 @@ def post_edit(request, username, post_id):
     post = get_object_or_404(Post, author__username=username, id=post_id)
     if post.author != request.user:
         redirect('posts:post', username, post_id)
-    form = PostForm(request.POST, instance=post or None)
+    form = PostForm(request.POST or None, request.FILES or None, instance=post)
     if form.is_valid():
         form.save()
         return redirect('posts:post', username, post_id)
     return render(request, 'posts/new_edit_post.html', {'form': form})
+
+
+def page_not_found(request, exception):
+    return render(request, 'misc/404.html', {'path': request.path}, status=404)
+
+
+def server_error(request):
+    return render(request, 'misc/500.html', status=500)
+
+
+def add_comment(request, username, post_id):
+    comment = get_object_or_404(Post, id=post_id, author__username=username)
+    form = CommentsForm(request.POST or None)
+    if form.is_valid():
+        post = form.save(commit=False)
+        post.author = request.user
+        post.post = comment
+        post.save()
+        return redirect('posts:post', username, post_id)
+    return render(request, 'posts/includes/comments.html', {'form': form})
