@@ -8,9 +8,9 @@ class GroupModelTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.group = Group.objects.create(
-            title='Тестовый тест титла',
-            slug='slug',
-            description='Это просто очередной тест'
+            title="Тестовый тест титла",
+            slug="slug",
+            description="Это просто очередной тест",
         )
 
     def test_title(self):
@@ -24,11 +24,8 @@ class PostModelTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='user')
-        cls.post = Post.objects.create(
-            text='Тестовый текст',
-            author_id=1
-        )
+        cls.user = User.objects.create_user(username="user")
+        cls.post = Post.objects.create(text="Тестовый текст", author_id=1)
 
     def test_text(self):
         """Вывод __str__ метода модели Post."""

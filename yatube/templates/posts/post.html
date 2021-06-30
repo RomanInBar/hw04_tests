@@ -40,22 +40,18 @@
     <div class="col-md-9" style="margin-left: 278px;">
       <div class="card mb-3 mt-1 shadow-sm">
         <div class="card-body">
-          
-          {% if comments %}
-            
-            {% for item in comments %}
-            <div class="media card mb-4">
-              <div class="media-body card-body">
-                <h5 class="mt-0">
-                  <a href="{% url 'posts:profile' item.author.username %}" name="comment_{{ item.id }}">{{ item.author.username}}</a>
-                </h5>
-                <p>{{ item.text|linebreaksbr }}</p>
-              </div>
+
+          {% for item in comments %}
+          <div class="media card mb-4">
+            <div class="media-body card-body">
+              <h5 class="mt-0">
+                <a href="{% url 'posts:profile' item.author.username %}" name="comment_{{ item.id }}">{{item.author.username }}</a>
+              </h5>
+              <p>{{ item.text|linebreaksbr }}</p>
             </div>
-            {% endfor %}
-          
-          {% endif %}
-        
+          </div>
+          {% endfor %}
+
         </div>
       </div>
     </div>
