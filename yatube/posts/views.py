@@ -34,9 +34,8 @@ def profile(request, username):
     paginator = Paginator(posts, 10)
     page_num = request.GET.get("page")
     page = paginator.get_page(page_num)
-
-    context = {"posts": posts, "author": author, "page": page}
-    return render(request, "posts/profile.html", context)
+    context = {'author': author, 'page': page}
+    return render(request, 'posts/profile.html', context)
 
 
 def post_view(request, username, post_id):
