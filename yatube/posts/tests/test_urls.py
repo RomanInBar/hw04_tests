@@ -39,7 +39,6 @@ class StaticURLTests(TestCase):
                 self.auth_client,
             ),
         }
-
         for adress, values in templates_url_names.items():
             template, client = values
             with self.subTest(adress=adress):

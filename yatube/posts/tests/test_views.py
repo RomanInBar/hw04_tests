@@ -1,3 +1,5 @@
+from time import sleep
+
 from django import forms
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -167,14 +169,8 @@ class ViewsTests(TestCase):
         self.assertEqual(len(resp.context.get('page').object_list), 7)
 
     def test_cache(self):
-        before_cache = self.quest_client.get(
-            reverse('posts:index') + '?page=2'
-        )
-        posts = len(before_cache.context['page'].object_list)
-        form_data = {'text': 'New post', 'group': self.group.id}
-        self.auth_client.post(
-            reverse('posts:new_post'), data=form_data, follow=True
-        )
-        cache = self.quest_client.get(reverse('posts:index') + '?page=2')
-        self.assertEqual(posts, 5)
-        self.assertIsNone(cache.context)
+        resp = self.quest_client.get(reverse('posts:index'))
+        index_page = resp.context.get('page')
+        sleep(2)
+        index_page_cache = resp.context.get('page')
+        self.assertEqual(index_page, index_page_cache)
