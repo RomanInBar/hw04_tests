@@ -89,15 +89,9 @@ class StaticURLTests(TestCase):
 
         self.assertRedirects(
             auth_no_author,
-            reverse(
-                "posts:post",
-                kwargs={
-                    "username": self.user.username,
-                    "post_id": self.post.id,
-                },
-            ),
+            reverse("posts:post", args=[self.user.username, self.post.id]),
         )
 
     def test_error_404(self):
-        response = self.auth_client.get(f'/{self.user.username}/100/')
+        response = self.auth_client.get(f"/{self.user.username}/100/")
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)

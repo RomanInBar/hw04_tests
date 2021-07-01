@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from django.views.decorators.cache import cache_page
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
@@ -8,6 +9,7 @@ from .forms import CommentsForm, PostForm
 from .models import Group, Post, User
 
 
+@cache_page(20)
 def index(request):
     posts_list = Post.objects.all().select_related("author", "group")
     paginator = Paginator(posts_list, 10)
@@ -16,6 +18,7 @@ def index(request):
     return render(request, "index.html", {"page": page})
 
 
+@cache_page(20)
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
     posts = group.posts.all()
@@ -39,7 +42,8 @@ def profile(request, username):
 def post_view(request, username, post_id):
     post = get_object_or_404(Post, id=post_id, author__username=username)
     comments = post.comments.all()
-    context = {"post": post, "comments": comments}
+    form = CommentsForm()
+    context = {"post": post, "comments": comments, 'form': form}
 
     return render(request, "posts/post.html", context)
 

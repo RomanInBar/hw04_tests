@@ -1,13 +1,5 @@
-{% extends 'base.html' %}
 {% load user_filters %}
-
-{% block title %}
-    Добавить комментарий
-{% endblock %}
-    
-
-{% block content %}
-    
+  
 {% if user.is_authenticated %}
   <div class="card my-4">
     <form method="post">
@@ -36,5 +28,3 @@
     </div>
   </div>
 {% endfor %} 
-
-{% endblock %}

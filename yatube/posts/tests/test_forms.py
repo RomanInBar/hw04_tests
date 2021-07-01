@@ -77,11 +77,7 @@ class CreateFormTest(TestCase):
         form_fields = {"text": "Редачим пост", "group": self.group_2.id}
         resp = self.auth_client.post(
             reverse(
-                "posts:post_edit",
-                kwargs={
-                    "username": self.user.username,
-                    "post_id": self.post.id,
-                },
+                "posts:post_edit", args=[self.user.username, self.post.id]
             ),
             data=form_fields,
             follow=True,
