@@ -39,7 +39,6 @@ class StaticURLTests(TestCase):
                 self.auth_client,
             ),
         }
-
         for adress, values in templates_url_names.items():
             template, client = values
             with self.subTest(adress=adress):
@@ -89,13 +88,11 @@ class StaticURLTests(TestCase):
 
         self.assertRedirects(
             auth_no_author,
-            reverse(
-                'posts:post',
-                kwargs={
-                    'username': self.user.username,
-                    'post_id': self.post.id,
-                },
-            ),
+            reverse('posts:post', args=[self.user.username, self.post.id]),
             HTTPStatus.FOUND,
             HTTPStatus.OK
         )
+
+    def test_error_404(self):
+        response = self.auth_client.get(f'/{self.user.username}/100/')
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)

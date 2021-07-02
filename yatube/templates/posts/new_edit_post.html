@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% load thumbnail %}
 
 {% block title %}
 {{ form.instance.id|yesno:"Редактировать запись, Добавить запись" }}
@@ -19,7 +19,7 @@
                 </div>
                 {% endfor %}
 
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     {% for field in form %}
                     <div class="form-group row" aria-required={{ field.field.required }}>

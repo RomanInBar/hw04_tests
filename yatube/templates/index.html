@@ -1,23 +1,16 @@
 {% extends 'base.html' %}
+{% load thumbnail %}
+{% load cache %}
+{% block title %}Последние обновления на сайте{% endblock %}
 
-{% block title %}
-    Последние обновления на сайте
-{% endblock %}
-
-{% block header %}
-    Последние обновления на сайте
-{% endblock %}
-
+{% block header %}Последние обновления на сайте{% endblock %}
 
 {% block content %}
-    {% for post in page %}
-        <h3>
-            Автор: {{ post.author.get_full_name }}, дата публикации: {{ post.pub_date|date:"d M Y" }}
-        </h3>
-        <p>{{ post.text|linebreaksbr }}</p>
-        <hr>
+    {% cache 20 index_page %}
+    {% for post in page %}    
+        {% include 'posts/post_item.html' with post=post %}
     {% endfor %}
-
+    {% endcache %}
     {% include 'paginator.html' %}
-
 {% endblock %}
+

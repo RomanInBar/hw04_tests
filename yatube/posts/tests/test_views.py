@@ -1,3 +1,5 @@
+from time import sleep
+
 from django import forms
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -9,7 +11,6 @@ class ViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.posts_count = Post.objects.count()
         cls.user = User.objects.create_user(username='user')
         cls.group = Group.objects.create(
             title='текст', slug='slug', description='Это просто очередной тест'
@@ -21,7 +22,10 @@ class ViewsTests(TestCase):
         )
         for object in range(15):
             cls.post = Post.objects.create(
-                text='текст', author_id=cls.user.id, group_id=cls.group.id
+                text='текст',
+                author_id=cls.user.id,
+                group_id=cls.group.id,
+                image='posts/p1.jpg',
             )
 
     def setUp(self):
@@ -54,11 +58,13 @@ class ViewsTests(TestCase):
         post_group_0 = first_object.group
         post_slug = first_object.group.slug
         post_date_0 = first_object.pub_date
+        post_image = first_object.image
         self.assertEqual(post_text_0, self.post.text)
         self.assertEqual(post_author_0, self.post.author)
         self.assertEqual(post_group_0, self.post.group)
         self.assertEqual(post_date_0, self.post.pub_date)
         self.assertEqual(post_slug, self.group.slug)
+        self.assertEqual(post_image, self.post.image)
 
     def test_index_page_context(self):
         """Проверка context главной страницы."""
@@ -71,36 +77,25 @@ class ViewsTests(TestCase):
             reverse('posts:profile', args=[self.user.username])
         )
         self.logic_for_tests(resp)
-        self.assertEqual(resp.context['page'][0].author, self.post.author)
+        self.assertEqual(resp.context['author'], self.post.author)
 
     def test_post_correct_context(self):
         """Проверка context страницы поста."""
         response = self.auth_client.get(
-            reverse(
-                'posts:post',
-                kwargs={
-                    'username': self.user.username,
-                    'post_id': self.post.id,
-                },
-            )
+            reverse('posts:post', args=[self.user.username, self.post.id])
         )
         resp = response.context['post']
         self.assertEqual(resp.text, self.post.text)
         self.assertEqual(resp.author, self.post.author)
         self.assertEqual(resp.group, self.group)
         self.assertEqual(resp.pub_date, self.post.pub_date)
+        self.assertEqual(resp.image, self.post.image)
 
     def test_new_edit_correct_context(self):
         """Проверка context страницы создания и редактирования поста."""
         response_1 = self.auth_client.get(reverse('posts:new_post'))
         response_2 = self.auth_client.get(
-            reverse(
-                'posts:post_edit',
-                kwargs={
-                    'username': self.user.username,
-                    'post_id': self.post.id,
-                },
-            )
+            reverse('posts:post_edit', args=[self.user.username, self.post.id])
         )
         form_fields = {
             'text': forms.fields.CharField,
@@ -122,15 +117,14 @@ class ViewsTests(TestCase):
         self.assertEqual(post_group.slug, self.group.slug)
         self.assertEqual(post_group.description, self.group.description)
         self.assertEqual(post_author.author, self.post.author)
+        self.assertEqual(post_author.image, self.post.image)
 
     def test_paginator(self):
         """Проверка корректной работы пажинатора."""
         posts_on_page = {
             reverse('posts:index'): (10, 5),
-            reverse('group', kwargs={'slug': self.group.slug}): (10, 5),
-            reverse(
-                'posts:profile', kwargs={'username': self.user.username}
-            ): (10, 5),
+            reverse('group', args=[self.group.slug]): (10, 5),
+            reverse('posts:profile', args=[self.user.username]): (10, 5),
         }
 
         for url, posts in posts_on_page.items():
@@ -159,8 +153,8 @@ class ViewsTests(TestCase):
             )
 
         posts_on_page = {
-            reverse('group', kwargs={'slug': self.group.slug}): 10,
-            reverse('group', kwargs={'slug': self.group_2.slug}): 2,
+            reverse('group', args=[self.group.slug]): 10,
+            reverse('group', args=[self.group_2.slug]): 2,
         }
 
         for url, posts in posts_on_page.items():
@@ -172,3 +166,10 @@ class ViewsTests(TestCase):
                 )
         resp = self.auth_client.get(reverse('posts:index') + '?page=2')
         self.assertEqual(len(resp.context.get('page').object_list), 7)
+
+    def test_cache(self):
+        resp = self.quest_client.get(reverse('posts:index'))
+        index_page = resp.context.get('page')
+        sleep(2)
+        index_page_cache = resp.context.get('page')
+        self.assertEqual(index_page, index_page_cache)
