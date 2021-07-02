@@ -11,7 +11,6 @@ class ViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.posts_count = Post.objects.count()
         cls.user = User.objects.create_user(username='user')
         cls.group = Group.objects.create(
             title='текст', slug='slug', description='Это просто очередной тест'
@@ -78,7 +77,7 @@ class ViewsTests(TestCase):
             reverse('posts:profile', args=[self.user.username])
         )
         self.logic_for_tests(resp)
-        self.assertEqual(resp.context['page'][0].author, self.post.author)
+        self.assertEqual(resp.context['author'], self.post.author)
 
     def test_post_correct_context(self):
         """Проверка context страницы поста."""
